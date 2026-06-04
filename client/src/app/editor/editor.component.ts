@@ -838,9 +838,9 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
      * show grid in canvas
      */
     onShowGrid() {
-        this.gridOn = this.gridOn = !this.gridOn;
+        this.gridOn = !this.gridOn;
         this.winRef.nativeWindow.svgEditor.clickExtension('view_grid');
-        this.winRef.nativeWindow.svgEditor.enableGridSnapping(this.gridOn);
+        this.winRef.nativeWindow.svgEditor.canvas.setConfig({ gridSnapping: this.gridOn, snappingStep: 10 });
     }
 
     /**
