@@ -42,8 +42,21 @@ function _ensureValidTable(table) {
     return table;
 }
 
+/**
+ * Resolve a manifest path inside the workspace.
+ *
+ * The manifest is not trusted input: the workspace is meant to be shared
+ * through git, so its contents can come from anyone who can commit to the
+ * project repository. Since clearAll deletes every path the manifest lists, a
+ * row pointing at '../../something' would reach outside the workspace. Refuse
+ * anything that does not resolve inside it.
+ */
 function _abs(relative) {
-    return path.join(workspace, relative);
+    const full = path.resolve(workspace, relative);
+    if (full !== workspace && !full.startsWith(workspace + path.sep)) {
+        throw new Error(`path '${relative}' escapes the workspace`);
+    }
+    return full;
 }
 
 // ---------------------------------------------------------------- manifest
@@ -183,7 +196,7 @@ function init(_settings, _log) {
     return new Promise(function (resolve, reject) {
         try {
             const configured = (settings.project && settings.project.workspaceDir) || '_project';
-            workspace = path.isAbsolute(configured) ? configured : path.join(settings.workDir, configured);
+            workspace = path.resolve(settings.workDir || '.', configured);
             secretsFile = path.join(settings.workDir, SECRETS_FILE);
             fs.mkdirSync(workspace, { recursive: true });
             const existed = _loadManifest();
@@ -384,8 +397,15 @@ function clearAll() {
     return new Promise(function (resolve, reject) {
         try {
             for (const row of manifest.rows) {
-                J.removeQuiet(_abs(row.path));
-                J.pruneEmptyDirs(path.dirname(_abs(row.path)), workspace);
+                try {
+                    const target = _abs(row.path);
+                    J.removeQuiet(target);
+                    J.pruneEmptyDirs(path.dirname(target), workspace);
+                } catch (err) {
+                    // A rejected path must not abort the clear, or a single bad
+                    // manifest row would make the project impossible to replace.
+                    logger.error(`prjstorage.clear skipped ${row.table}/${row.path}! ${err}`);
+                }
             }
             manifest.rows = [];
             _reindex();

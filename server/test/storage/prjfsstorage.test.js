@@ -400,6 +400,28 @@ describe('Project filesystem storage', () => {
             expect(manifest.rows[0].files).to.include('view.svg');
         });
 
+        it('refuses paths that point outside the workspace', async () => {
+            // The manifest is untrusted: the workspace is shared through git, so
+            // its contents come from anyone who can commit to the project repo.
+            // clearAll deletes every path it lists, so a '../' row would reach
+            // out of the workspace.
+            const outside = path.join(workDir, 'IMPORTANT.txt');
+            fs.writeFileSync(outside, 'must survive\n');
+            fs.writeFileSync(path.join(workspace, '.fuxa-index.json'), JSON.stringify({
+                formatVersion: 1,
+                rows: [
+                    { table: 'views', name: 'a', path: '../IMPORTANT.txt', kind: 'file', files: [''], hash: 'x' },
+                    { table: 'views', name: 'b', path: '/etc/hostname', kind: 'file', files: [''], hash: 'x' },
+                ],
+            }));
+
+            await fsstorage.init({ workDir, project: { storage: 'fs', workspaceDir: '_project' } }, makeLogger());
+            await fsstorage.clearAll();
+
+            expect(fs.existsSync(outside), 'file beside the workspace').to.equal(true);
+            expect(fs.existsSync('/etc/hostname'), 'file outside the workspace').to.equal(true);
+        });
+
         it('a project written by one instance is readable by the next', async () => {
             const original = aView('v1', 'Main');
             await fsstorage.setSection({ table: TableType.VIEWS, name: 'v1', value: original });
