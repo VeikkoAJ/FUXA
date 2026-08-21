@@ -1534,6 +1534,7 @@ export class ProjectService {
 export class ServerSettings {
     version: string;
     secureEnabled: boolean;
+    secureOnlyEditor: boolean;
 }
 
 export enum SaveMode {

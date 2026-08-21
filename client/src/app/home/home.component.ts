@@ -79,6 +79,7 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     private subscriptionAlarmsStatus: Subscription;
     private subscriptiongoTo: Subscription;
     private subscriptionOpen: Subscription;
+    private subscriptionWriteUnauthorized: Subscription;
     private destroy$ = new Subject<void>();
     loggedUser$: Observable<User>;
     language$: Observable<LanguageConfiguration>;
@@ -119,6 +120,11 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
             this.subscriptionOpen = this.hmiService.onOpen.subscribe((viewToOpen: ScriptOpenCard) => {
                 const viewId = this.projectService.getViewId(viewToOpen.viewName);
                 this.fuxaview.onOpenCard(viewId, null, viewId, viewToOpen.options);
+            });
+            this.subscriptionWriteUnauthorized = this.hmiService.onWriteUnauthorized.subscribe(() => {
+                if (!this.isLoggedIn()) {
+                    this.onLogin();
+                }
             });
 
             this.language$ = this.languageService.languageConfig$;
@@ -162,6 +168,9 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
             }
             if (this.subscriptiongoTo) {
                 this.subscriptiongoTo.unsubscribe();
+            }
+            if (this.subscriptionWriteUnauthorized) {
+                this.subscriptionWriteUnauthorized.unsubscribe();
             }
             this.destroy$.next(null);
             this.destroy$.complete();

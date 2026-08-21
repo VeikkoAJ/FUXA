@@ -34,7 +34,7 @@ var socketPool = new Map();
 var socketMutex = new Map();
 
 function isSocketWriteAuthorized(socket) {
-    if (!settings || !settings.secureEnabled) {
+    if (!settings || !settings.secureEnabled || settings.secureOnlyEditor) {
         return true;
     }
     return !!(socket && socket.isAuthenticated);
@@ -193,6 +193,7 @@ function init(_io, _api, _settings, _log, eventsMain) {
                 } else if (message.cmd === 'set' && message.var) {
                     if (!isSocketWriteAuthorized(socket)) {
                         logger.warn(`${Events.IoEventTypes.DEVICE_VALUES}: unauthorized write attempt from ${socket.userId || 'guest'}`);
+                        socket.emit(Events.IoEventTypes.DEVICE_VALUES, { cmd: 'set-unauthorized', var: message.var });
                         return;
                     }
                     devices.setDeviceValue(message.var.source, message.var.id, message.var.value, message.fnc);

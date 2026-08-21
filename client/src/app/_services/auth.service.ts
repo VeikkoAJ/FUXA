@@ -119,6 +119,10 @@ export class AuthService {
         return false;
     }
 
+    isAuthenticated(): boolean {
+        return !!this.currentUser && !this.isGuestUser(this.currentUser);
+    }
+
 	setNewToken(token: string, userData?: Partial<UserProfile>) {
 		if (!this.currentUser) {
 			return;

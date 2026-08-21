@@ -35,6 +35,7 @@ export class HmiService {
     @Output() onSchedulerEventActive: EventEmitter<any> = new EventEmitter();
     @Output() onSchedulerRemainingTime: EventEmitter<any> = new EventEmitter();
     @Output() onGaugeEvent: EventEmitter<any> = new EventEmitter();
+    @Output() onWriteUnauthorized: EventEmitter<void> = new EventEmitter();
 
     onServerConnection$ = new BehaviorSubject<boolean>(false);
 
@@ -251,6 +252,16 @@ export class HmiService {
         });
         // devices values
         this.socket.on(IoEventTypes.DEVICE_VALUES, (message) => {
+            if (message.cmd === 'set-unauthorized') {
+                let msg = '';
+                this.translateService.get('msg.write-unauthorized-signin').subscribe((txt: string) => { msg = txt; });
+                this.toastr.warning(msg, '', {
+                    timeOut: 3000,
+                    closeButton: true,
+                });
+                this.onWriteUnauthorized.emit();
+                return;
+            }
             const updateVariable = (id: string, value: any, timestamp: any, quality: any) => {
                 if (Utils.isNullOrUndefined(this.variables[id])) {
                     this.variables[id] = new Variable(id, null, null);
