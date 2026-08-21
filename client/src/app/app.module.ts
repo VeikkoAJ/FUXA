@@ -18,6 +18,7 @@ import { NgxDaterangepickerMd } from './gui-helpers/daterangepicker';
 import { AppComponent } from './app.component';
 import { routing } from './app.routing';
 import { AuthGuard } from './auth.guard';
+import { ViewAuthGuard } from './view-auth.guard';
 
 import { HomeComponent } from './home/home.component';
 import { HeaderComponent, DialogInfo } from './header/header.component';
@@ -492,6 +493,7 @@ export const myCustomTooltipDefaults: MatTooltipDefaultOptions = {
         ModalPositionCache,
         Define,
         AuthGuard,
+        ViewAuthGuard,
         ToastNotifierService,
         MyFileService,
         ReportsService,
