@@ -141,4 +141,19 @@ module.exports = {
     // Node-RED: allow unsafe stdlib modules in functionGlobalContext
     // WARNING: Enabling this exposes modules like child_process/net to flows.
     nodeRedUnsafeModules: false,
+
+    // How the project is stored
+    project: {
+        // 'sqlite'  one binary project.fuxap.db file (default)
+        // 'fs'      a folder of JSON, SVG and JS files, meant to be kept in git
+        //           and edited in an editor as well as in the application
+        storage: 'sqlite',
+
+        // Workspace folder used by the 'fs' storage. A relative path resolves
+        // against workDir, so the default lands inside the _appdata volume that
+        // docker compose already mounts.
+        // Switching an existing installation to 'fs' converts the database into
+        // this folder on first start; the database is left untouched.
+        workspaceDir: '_project',
+    },
 }
