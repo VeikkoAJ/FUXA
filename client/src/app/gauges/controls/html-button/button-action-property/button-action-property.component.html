@@ -1,0 +1,35 @@
+<div class="button-action">
+    <div class="my-form-field">
+        <span>{{'gauges.property-button-action' | translate}}</span>
+        <mat-select [(value)]="action.mode" style="width: 160px">
+            <mat-option [value]="modeType.none">{{'gauges.property-button-action-none' | translate}}</mat-option>
+            <mat-option [value]="modeType.toggle">{{'gauges.property-button-action-toggle' | translate}}</mat-option>
+            <mat-option [value]="modeType.press">{{'gauges.property-button-action-press' | translate}}</mat-option>
+        </mat-select>
+    </div>
+    <ng-container *ngIf="action.mode === modeType.toggle">
+        <div class="my-form-field ml10">
+            <span>{{'gauges.property-button-action-off-value' | translate}}</span>
+            <input [(ngModel)]="action.offValue" class="value-input" type="text">
+        </div>
+        <div class="my-form-field ml10">
+            <span>{{'gauges.property-button-action-on-value' | translate}}</span>
+            <input [(ngModel)]="action.onValue" class="value-input" type="text">
+        </div>
+    </ng-container>
+    <ng-container *ngIf="action.mode === modeType.press">
+        <div class="my-form-field ml10">
+            <span>{{'gauges.property-button-action-press-value' | translate}}</span>
+            <input [(ngModel)]="action.pressValue" class="value-input" type="text">
+        </div>
+        <div class="my-form-field ml10">
+            <span>{{'gauges.property-button-action-release-value' | translate}}</span>
+            <input [(ngModel)]="action.releaseValue" class="value-input" type="text">
+        </div>
+        <div class="my-form-field ml10">
+            <span>{{'gauges.property-button-action-min-hold' | translate}}</span>
+            <input [(ngModel)]="action.minHoldTime" (change)="onMinHoldTimeChange()" class="value-input"
+                   type="number" min="0" [max]="maxHoldTime" step="0.1">
+        </div>
+    </ng-container>
+</div>
