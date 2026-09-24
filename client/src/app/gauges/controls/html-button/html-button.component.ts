@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { GaugeBaseComponent } from '../../gauge-base/gauge-base.component';
-import { GaugeAction, GaugeSettings, GaugeStatus, Variable, GaugeActionsType, GaugePropertyColor } from '../../../_models/hmi';
+import { GaugeAction, GaugeSettings, GaugeStatus, Variable, GaugeActionsType, GaugePropertyColor, ButtonActionMode } from '../../../_models/hmi';
 import { Utils } from '../../../_helpers/utils';
 import { GaugeDialogType } from '../../gauge-property/gauge-property.component';
 
@@ -36,6 +36,14 @@ export class HtmlButtonComponent extends GaugeBaseComponent {
             });
         }
         return res;
+    }
+
+    /**
+     * true if the button has a toggle/press action configured on its tag
+     */
+    static hasButtonAction(ga: GaugeSettings): boolean {
+        const mode = ga?.property?.buttonAction?.mode;
+        return !!ga?.type?.startsWith(this.TypeTag) && !!ga.property.variableId && (mode === ButtonActionMode.toggle || mode === ButtonActionMode.press);
     }
 
     static getDialogType(): GaugeDialogType {
