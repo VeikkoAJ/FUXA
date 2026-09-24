@@ -49,6 +49,7 @@
 											[property]="property">
 						</flex-widget-property>
 						<flex-head *ngIf="!isWidget()" [data]="data" [property]="property" #flexhead [withBitmask]="withBitmask"></flex-head>
+						<button-action-property *ngIf="isButton()" [property]="property"></button-action-property>
 					</div>
 				</div>
 			</mat-tab>

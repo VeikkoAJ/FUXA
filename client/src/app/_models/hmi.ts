@@ -232,6 +232,22 @@ export class GaugeProperty {
     text: string;               // Text property (used by button)
     icon?: string;              // Optional Material icon (used by button)
     image?: string;             // Optional image resource (used by button)
+    buttonAction?: ButtonActionProperty;    // Optional toggle/press action (used by button)
+}
+
+export enum ButtonActionMode {
+    none = 'none',
+    toggle = 'toggle',
+    press = 'press',
+}
+
+export interface ButtonActionProperty {
+    mode: ButtonActionMode;
+    offValue?: string;          // toggle
+    onValue?: string;           // toggle
+    pressValue?: string;        // press
+    releaseValue?: string;      // press
+    minHoldTime?: number;       // press, seconds (0-10)
 }
 
 export interface PermissionRoles {
