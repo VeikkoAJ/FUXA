@@ -1,5 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { ButtonActionMode, ButtonActionProperty, GaugeProperty } from '../../../../_models/hmi';
+import { Utils } from '../../../../_helpers/utils';
 
 @Component({
     selector: 'button-action-property',
@@ -23,12 +24,18 @@ export class ButtonActionPropertyComponent implements OnInit {
             pressValue: '1',
             releaseValue: '0',
             minHoldTime: 0,
+            setValue: '1',
+            showPressed: false,
             ...this.property.buttonAction
         };
     }
 
     get action(): ButtonActionProperty {
         return this.property.buttonAction;
+    }
+
+    isEmpty(value: string): boolean {
+        return Utils.isNullOrUndefined(value) || String(value).trim() === '';
     }
 
     onMinHoldTimeChange() {

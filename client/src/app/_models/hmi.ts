@@ -239,6 +239,7 @@ export enum ButtonActionMode {
     none = 'none',
     toggle = 'toggle',
     press = 'press',
+    set = 'set',
 }
 
 export interface ButtonActionProperty {
@@ -248,6 +249,8 @@ export interface ButtonActionProperty {
     pressValue?: string;        // press
     releaseValue?: string;      // press
     minHoldTime?: number;       // press, seconds (0-10)
+    setValue?: string;          // set
+    showPressed?: boolean;      // render the button as pressed while active
 }
 
 export interface PermissionRoles {

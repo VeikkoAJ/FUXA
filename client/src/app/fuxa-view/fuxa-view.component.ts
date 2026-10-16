@@ -592,16 +592,18 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     /**
-     * bind the button toggle/press action (configured in button property) to the pointer events
+     * bind the button toggle/press/set action (configured in button property) to the pointer events
      * @param ga
      * @param element
      */
     private bindButtonAction(ga: GaugeSettings, element: HTMLElement) {
         const action = ga.property.buttonAction;
         const variableId = ga.property.variableId;
+        const button: HTMLElement = Utils.searchTreeStartWith(element, HtmlButtonComponent.prefixB);
+        const getValue = () => this.hmiService.variables[variableId]?.value;
         const writeValue = (value: string) => {
             if (ga.property.bitmask) {
-                const current = parseInt(this.hmiService.variables[variableId]?.value, 0) || 0;
+                const current = parseInt(getValue(), 0) || 0;
                 value = GaugeBaseComponent.valueBitmask(ga.property.bitmask, parseInt(value, 0) || 0, current).toString();
             }
             this.gaugesManager.putSignalValue(variableId, value);
@@ -610,7 +612,8 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
         element.style.touchAction = 'none';
         element.addEventListener('contextmenu', (ev) => ev.preventDefault());
 
-        if (action.mode === ButtonActionMode.toggle) {
+        if (action.mode === ButtonActionMode.toggle || action.mode === ButtonActionMode.set) {
+            // click: pointer pressed and released on the button
             let pressed = false;
             element.addEventListener('pointerdown', (ev: PointerEvent) => {
                 pressed = ev.isPrimary;
@@ -623,17 +626,26 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
                     return;
                 }
                 pressed = false;
-                const current = this.hmiService.variables[variableId]?.value;
-                let isOn = String(current) === String(action.onValue);
-                if (ga.property.bitmask) {
-                    const mask = ga.property.bitmask;
-                    isOn = ((parseInt(current, 0) || 0) & mask) === ((parseInt(action.onValue, 0) || 0) & mask);
+                if (action.mode === ButtonActionMode.set) {
+                    writeValue(action.setValue);
+                } else {
+                    const isOn = HtmlButtonComponent.isValueEqual(ga, getValue(), action.onValue);
+                    writeValue(isOn ? action.offValue : action.onValue);
                 }
-                writeValue(isOn ? action.offValue : action.onValue);
             });
         } else if (action.mode === ButtonActionMode.press) {
             let pressedAt: number = null;
             let releaseTimer = null;
+            const setPressActive = (active: boolean) => {
+                if (button) {
+                    button.dataset.pressActive = String(active);
+                    HtmlButtonComponent.updatePressedState(ga, button, getValue());
+                }
+            };
+            const release = () => {
+                writeValue(action.releaseValue);
+                setPressActive(false);
+            };
             const onRelease = () => {
                 window.removeEventListener('pointerup', onRelease);
                 window.removeEventListener('pointercancel', onRelease);
@@ -646,10 +658,10 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
                 if (remaining > 0) {
                     releaseTimer = setTimeout(() => {
                         releaseTimer = null;
-                        writeValue(action.releaseValue);
+                        release();
                     }, remaining);
                 } else {
-                    writeValue(action.releaseValue);
+                    release();
                 }
             };
             element.addEventListener('pointerdown', (ev: PointerEvent) => {
@@ -660,6 +672,7 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
                 releaseTimer = null;
                 pressedAt = Date.now();
                 writeValue(action.pressValue);
+                setPressActive(true);
                 window.addEventListener('pointerup', onRelease);
                 window.addEventListener('pointercancel', onRelease);
                 window.addEventListener('blur', onRelease);
