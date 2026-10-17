@@ -39,6 +39,7 @@ export class HtmlButtonComponent extends GaugeBaseComponent {
     }
 
     static PressedClass = 'md-btn-pressed';
+    static MaxHoldTime = 10;
 
     /**
      * true if the button has a valid toggle/press/set action configured on its tag
@@ -56,7 +57,7 @@ export class HtmlButtonComponent extends GaugeBaseComponent {
             case ButtonActionMode.toggle:
                 return isDefined(action.offValue) && isDefined(action.onValue);
             case ButtonActionMode.press:
-                return isDefined(action.pressValue) && isDefined(action.releaseValue);
+                return isDefined(action.pressValue) && isDefined(action.releaseValue) && this.isHoldTimeValid(action.minHoldTime);
             case ButtonActionMode.set:
                 return isDefined(action.setValue);
             default:
@@ -65,7 +66,15 @@ export class HtmlButtonComponent extends GaugeBaseComponent {
     }
 
     /**
-     * return the value that represents the 'pressed' (active) state of the button action
+     * the press min. hold time has to be greater than 0 and not more than MaxHoldTime seconds
+     */
+    static isHoldTimeValid(holdTime: any): boolean {
+        const value = Number(holdTime);
+        return !Utils.isNullOrUndefined(holdTime) && String(holdTime).trim() !== '' && !Number.isNaN(value) && value > 0 && value <= this.MaxHoldTime;
+    }
+
+    /**
+     * return the value that represents the active ('pressed') state of the button action
      */
     static getActiveValue(action: ButtonActionProperty): string {
         switch (action?.mode) {
@@ -95,19 +104,50 @@ export class HtmlButtonComponent extends GaugeBaseComponent {
     }
 
     /**
-     * render the button as pressed if enabled and the tag value matches the active value.
-     * in press mode the button is rendered as pressed only while the press (and min. hold time) is active
+     * button state is active if the tag value matches the active value,
+     * in press mode only while the press (and min. hold time) is in progress
      */
-    static updatePressedState(ga: GaugeSettings, button: HTMLElement, value: any) {
+    static isActiveState(ga: GaugeSettings, button: HTMLElement, value: any): boolean {
         const action = ga.property?.buttonAction;
-        if (!button || !action) {
+        let active = this.isButtonActionValid(action) && this.isValueEqual(ga, value, this.getActiveValue(action));
+        if (active && action.mode === ButtonActionMode.press) {
+            active = button.dataset.pressActive === 'true';
+        }
+        return active;
+    }
+
+    /**
+     * track the tag value during a press: if the confirmed pressed value changes while the press
+     * (or its min. hold time) is in progress, the press is interrupted and the released value is not written
+     */
+    static trackPressValue(ga: GaugeSettings, button: HTMLElement, value: any) {
+        if (button.dataset.pressActive !== 'true') {
             return;
         }
-        let pressed = !!action.showPressed && this.isButtonActionValid(action) && this.isValueEqual(ga, value, this.getActiveValue(action));
-        if (pressed && action.mode === ButtonActionMode.press) {
-            pressed = button.dataset.pressActive === 'true';
+        if (this.isValueEqual(ga, value, ga.property.buttonAction.pressValue)) {
+            button.dataset.pressConfirmed = 'true';
+        } else if (button.dataset.pressConfirmed === 'true') {
+            button.dataset.pressInterrupted = 'true';
         }
-        button.classList.toggle(this.PressedClass, pressed);
+    }
+
+    /**
+     * update the button by its state (active/inactive):
+     * - render as pressed if enabled
+     * - show the state label if defined, a missing label leaves the current one unchanged
+     */
+    static updateButtonState(ga: GaugeSettings, button: HTMLElement, value: any) {
+        const action = ga.property?.buttonAction;
+        if (!button || !action || action.mode === ButtonActionMode.none || Utils.isNullOrUndefined(action.mode)) {
+            return;
+        }
+        const active = this.isActiveState(ga, button, value);
+        button.classList.toggle(this.PressedClass, !!action.showPressed && active);
+        const label = active ? action.activeLabel : action.inactiveLabel;
+        if (!Utils.isNullOrUndefined(label) && String(label).trim() !== '' && button.dataset.stateLabel !== label) {
+            button.dataset.stateLabel = label;
+            this.setButtonContent(button, label, ga.property.icon, ga.property.image);
+        }
     }
 
     static getDialogType(): GaugeDialogType {
@@ -205,8 +245,11 @@ export class HtmlButtonComponent extends GaugeBaseComponent {
                     val = Number(sig.value);
                 }
                 if (ga.property) {
-                    if (sig.id === ga.property.variableId) {
-                        HtmlButtonComponent.updatePressedState(ga, button, sig.value);
+                    if (sig.id === ga.property.variableId && ga.property.buttonAction) {
+                        if (ga.property.buttonAction.mode === ButtonActionMode.press) {
+                            HtmlButtonComponent.trackPressValue(ga, button, sig.value);
+                        }
+                        HtmlButtonComponent.updateButtonState(ga, button, sig.value);
                     }
                     let propertyColor = new GaugePropertyColor();
                     if (ga.property.ranges) {

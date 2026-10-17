@@ -28,9 +28,10 @@
             <input [(ngModel)]="action.releaseValue" [class.invalid]="isEmpty(action.releaseValue)" class="value-input" type="text" required>
         </div>
         <div class="my-form-field ml10">
-            <span>{{'gauges.property-button-action-min-hold' | translate}}</span>
-            <input [(ngModel)]="action.minHoldTime" (change)="onMinHoldTimeChange()" class="value-input"
-                   type="number" min="0" [max]="maxHoldTime" step="0.1">
+            <span>{{'gauges.property-button-action-min-hold' | translate}} *</span>
+            <input [(ngModel)]="action.minHoldTime" (change)="onMinHoldTimeChange()" [class.invalid]="isHoldTimeInvalid()"
+                   class="value-input" type="number" min="0.1" [max]="maxHoldTime" step="0.1" required
+                   matTooltip="{{'gauges.property-button-action-min-hold-tooltip' | translate}}">
         </div>
     </ng-container>
     <ng-container *ngIf="action.mode === modeType.set">
@@ -42,5 +43,17 @@
     <div class="my-form-field ml10 pressed-field" *ngIf="action.mode !== modeType.none">
         <span>{{'gauges.property-button-action-show-pressed' | translate}}</span>
         <mat-checkbox color="primary" [(ngModel)]="action.showPressed"></mat-checkbox>
+    </div>
+    <div class="state-labels" *ngIf="action.mode !== modeType.none">
+        <div class="my-form-field">
+            <span>{{'gauges.property-button-action-active-label' | translate}}</span>
+            <input [(ngModel)]="action.activeLabel" class="label-input" type="text"
+                   placeholder="{{'gauges.property-button-action-label-placeholder' | translate}}">
+        </div>
+        <div class="my-form-field ml10">
+            <span>{{'gauges.property-button-action-inactive-label' | translate}}</span>
+            <input [(ngModel)]="action.inactiveLabel" class="label-input" type="text"
+                   placeholder="{{'gauges.property-button-action-label-placeholder' | translate}}">
+        </div>
     </div>
 </div>

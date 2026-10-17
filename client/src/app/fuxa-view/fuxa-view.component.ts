@@ -639,11 +639,14 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
             const setPressActive = (active: boolean) => {
                 if (button) {
                     button.dataset.pressActive = String(active);
-                    HtmlButtonComponent.updatePressedState(ga, button, getValue());
+                    HtmlButtonComponent.updateButtonState(ga, button, getValue());
                 }
             };
             const release = () => {
-                writeValue(action.releaseValue);
+                // the tag changed during the press: don't revert it with the released value
+                if (button?.dataset.pressInterrupted !== 'true') {
+                    writeValue(action.releaseValue);
+                }
                 setPressActive(false);
             };
             const onRelease = () => {
@@ -653,7 +656,7 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
                 if (pressedAt === null) {
                     return;
                 }
-                const remaining = (action.minHoldTime || 0) * 1000 - (Date.now() - pressedAt);
+                const remaining = Number(action.minHoldTime) * 1000 - (Date.now() - pressedAt);
                 pressedAt = null;
                 if (remaining > 0) {
                     releaseTimer = setTimeout(() => {
@@ -671,6 +674,10 @@ export class FuxaViewComponent implements OnInit, AfterViewInit, OnDestroy {
                 clearTimeout(releaseTimer);
                 releaseTimer = null;
                 pressedAt = Date.now();
+                if (button) {
+                    button.dataset.pressConfirmed = 'false';
+                    button.dataset.pressInterrupted = 'false';
+                }
                 writeValue(action.pressValue);
                 setPressActive(true);
                 window.addEventListener('pointerup', onRelease);

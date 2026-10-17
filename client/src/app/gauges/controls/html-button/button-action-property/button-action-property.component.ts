@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { ButtonActionMode, ButtonActionProperty, GaugeProperty } from '../../../../_models/hmi';
 import { Utils } from '../../../../_helpers/utils';
+import { HtmlButtonComponent } from '../html-button.component';
 
 @Component({
     selector: 'button-action-property',
@@ -9,12 +10,10 @@ import { Utils } from '../../../../_helpers/utils';
 })
 export class ButtonActionPropertyComponent implements OnInit {
 
-    static readonly MaxHoldTime = 10;
-
     @Input() property: GaugeProperty;
 
     modeType = ButtonActionMode;
-    maxHoldTime = ButtonActionPropertyComponent.MaxHoldTime;
+    maxHoldTime = HtmlButtonComponent.MaxHoldTime;
 
     ngOnInit() {
         this.property.buttonAction = <ButtonActionProperty>{
@@ -23,7 +22,7 @@ export class ButtonActionPropertyComponent implements OnInit {
             onValue: '1',
             pressValue: '1',
             releaseValue: '0',
-            minHoldTime: 0,
+            minHoldTime: 0.5,
             setValue: '1',
             showPressed: false,
             ...this.property.buttonAction
@@ -38,8 +37,14 @@ export class ButtonActionPropertyComponent implements OnInit {
         return Utils.isNullOrUndefined(value) || String(value).trim() === '';
     }
 
+    isHoldTimeInvalid(): boolean {
+        return !HtmlButtonComponent.isHoldTimeValid(this.action.minHoldTime);
+    }
+
     onMinHoldTimeChange() {
         const value = Number(this.action.minHoldTime);
-        this.action.minHoldTime = Number.isNaN(value) ? 0 : Math.min(Math.max(value, 0), this.maxHoldTime);
+        if (!Number.isNaN(value) && value > this.maxHoldTime) {
+            this.action.minHoldTime = this.maxHoldTime;
+        }
     }
 }

@@ -248,9 +248,11 @@ export interface ButtonActionProperty {
     onValue?: string;           // toggle
     pressValue?: string;        // press
     releaseValue?: string;      // press
-    minHoldTime?: number;       // press, seconds (0-10)
+    minHoldTime?: number;       // press, seconds (>0, max 10)
     setValue?: string;          // set
     showPressed?: boolean;      // render the button as pressed while active
+    activeLabel?: string;       // optional label shown when the button state changes to active
+    inactiveLabel?: string;     // optional label shown when the button state changes to inactive
 }
 
 export interface PermissionRoles {
