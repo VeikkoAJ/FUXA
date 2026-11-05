@@ -1,11 +1,13 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ChangeDetectorRef, ElementRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
+import { GridsterConfig } from 'angular-gridster2';
 
 import { ProjectService } from '../_services/project.service';
-import { Hmi, View, ZoomModeType } from '../_models/hmi';
+import { Hmi, View, ViewType, ZoomModeType } from '../_models/hmi';
 import { GaugesManager } from '../gauges/gauges.component';
 import { FuxaViewComponent } from '../fuxa-view/fuxa-view.component';
+import { CardsViewComponent, GridOptions } from '../cards-view/cards-view.component';
 
 import panzoom from 'panzoom';
 
@@ -16,11 +18,15 @@ import panzoom from 'panzoom';
 })
 export class ViewComponent implements OnInit, AfterViewInit, OnDestroy {
 
-    @ViewChild('fuxaview', {static: true}) fuxaview: FuxaViewComponent;
+    @ViewChild('fuxaview', {static: false}) fuxaview: FuxaViewComponent;
+    @ViewChild('cardsview', {static: false}) cardsview: CardsViewComponent;
 	@ViewChild('container', {read: ElementRef, static: true}) container: ElementRef;
 
     startView: View = new View();
     hmi: Hmi = new Hmi();
+    cardViewType = ViewType.cards;
+    mapsViewType = ViewType.maps;
+    gridOptions = <GridsterConfig>new GridOptions();
 
     private viewName: string;
 
@@ -29,7 +35,10 @@ export class ViewComponent implements OnInit, AfterViewInit, OnDestroy {
     constructor(private projectService: ProjectService,
         private route: ActivatedRoute,
         private changeDetector: ChangeDetectorRef,
-        public gaugesManager: GaugesManager) { }
+        public gaugesManager: GaugesManager) {
+        this.gridOptions.draggable = { enabled: false };
+        this.gridOptions.resizable = { enabled: false };
+    }
 
     ngOnInit() {
         this.viewName = this.route.snapshot.queryParamMap.get('name');
@@ -62,29 +71,58 @@ export class ViewComponent implements OnInit, AfterViewInit, OnDestroy {
         }
     }
 
-    private loadHmi() {
+    async onGoToPage(viewId: string) {
+        if (!viewId || viewId === this.startView?.id) {
+            return;
+        }
+        const view = await this.projectService.ensureViewLoaded(viewId);
+        if (view) {
+            this.showView(view);
+        }
+    }
+
+    private async loadHmi() {
         let hmi = this.projectService.getHmi();
         if (hmi) {
             this.hmi = hmi;
         }
         if (this.hmi && this.hmi.views && this.hmi.views.length > 0) {
-            this.startView = this.hmi.views.find(x => x.name === this.viewName);
-            this.setBackground();
-            if (this.startView && this.fuxaview) {
-                this.fuxaview.loadHmi(this.startView);
-            }
-            if (this.hmi.layout && this.hmi.layout.zoom && ZoomModeType[this.hmi.layout.zoom] === ZoomModeType.enabled) {
-                setTimeout(() => {
-                    let element: HTMLElement = document.querySelector('#view');
-                    if (element && panzoom) {
-                        panzoom(element, {
-                            bounds: true,
-                            boundsPadding: 0.05,
-                        });
-                        this.container.nativeElement.style.overflow = 'hidden';
-                    }
-                }, 1000);
-            }
+            const view = await this.projectService.ensureViewLoadedByName(this.viewName)
+                ?? this.hmi.views.find(x => x.name === this.viewName);
+            this.showView(view);
+        }
+    }
+
+    private showView(view: View) {
+        this.startView = view;
+        // render the component matching the view type (svg, cards or maps)
+        this.changeDetector.detectChanges();
+        this.setBackground();
+        if (!view) {
+            return;
+        }
+        if (view.type === this.cardViewType || view.type === this.mapsViewType) {
+            this.cardsview?.reload();
+            return;
+        }
+        if (this.fuxaview) {
+            this.fuxaview.loadHmi(view);
+        }
+        this.checkZoom();
+    }
+
+    private checkZoom() {
+        if (this.hmi.layout && this.hmi.layout.zoom && ZoomModeType[this.hmi.layout.zoom] === ZoomModeType.enabled) {
+            setTimeout(() => {
+                let element: HTMLElement = document.querySelector('#view');
+                if (element && panzoom) {
+                    panzoom(element, {
+                        bounds: true,
+                        boundsPadding: 0.05,
+                    });
+                    this.container.nativeElement.style.overflow = 'hidden';
+                }
+            }, 1000);
         }
     }
 

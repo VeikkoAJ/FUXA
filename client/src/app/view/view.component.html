@@ -1,3 +1,15 @@
 <div id="container"  class="view-container" #container>
-    <app-fuxa-view #fuxaview class="view-body" id="view" [view]="startView" [hmi]="hmi" [gaugesManager]="gaugesManager"></app-fuxa-view>
+    <ng-container [ngSwitch]="startView?.type">
+        <ng-container *ngSwitchCase="cardViewType">
+            <app-cards-view #cardsview [edit]="false" [options]="gridOptions"
+                [view]="startView" [hmi]="hmi" [gaugesManager]="gaugesManager" (onGoTo)="onGoToPage($event)">
+            </app-cards-view>
+        </ng-container>
+        <ng-container *ngSwitchCase="mapsViewType">
+            <app-maps-view [view]="startView" [hmi]="hmi" [gaugesManager]="gaugesManager" (onGoTo)="onGoToPage($event)"></app-maps-view>
+        </ng-container>
+        <ng-container *ngSwitchDefault>
+            <app-fuxa-view #fuxaview class="view-body" id="view" [view]="startView" [hmi]="hmi" [gaugesManager]="gaugesManager" (ongoto)="onGoToPage($event)"></app-fuxa-view>
+        </ng-container>
+    </ng-container>
 </div>
