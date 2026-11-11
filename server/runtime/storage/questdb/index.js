@@ -1,8 +1,34 @@
 'use strict'
 
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const { Sender } = require('@questdb/nodejs-client');
 let utils = require('../../utils');
+
+// QuestDB stores timestamps in UTC but sends them over PGWire as
+// `timestamp without time zone`, which node-postgres parses as local time and
+// so shifts every row by the server's UTC offset. Parse them as UTC instead.
+const PG_TIMESTAMP_OID = 1114;
+const QUESTDB_TIMESTAMP = /^(\d{4,})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?Z?$/;
+
+function parseUtcTimestamp(value) {
+    const match = QUESTDB_TIMESTAMP.exec(value);
+    if (!match) {
+        return new Date(NaN);
+    }
+    const [, year, month, day, hours, minutes, seconds, fraction = ''] = match;
+    // Date keeps milliseconds only; drop the micro/nanosecond digits.
+    return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day),
+        Number(hours), Number(minutes), Number(seconds), Number(fraction.padEnd(3, '0').slice(0, 3))));
+}
+
+const queryTypes = {
+    getTypeParser(oid, format) {
+        if (oid === PG_TIMESTAMP_OID && format !== 'binary') {
+            return parseUtcTimestamp;
+        }
+        return types.getTypeParser(oid, format);
+    }
+};
 
 function QuestDB(_settings, _log, _currentStorage) {
     let settings = _settings;               // Application settings
@@ -108,7 +134,8 @@ function QuestDB(_settings, _log, _currentStorage) {
                                  AND timestamp >= $2
                                  AND timestamp < $3
                                ORDER BY timestamp`;
-                const params = [tagid, new Date(fromts), new Date(tots)];
+                // Send UTC instants; pg would serialize Date objects in local time.
+                const params = [tagid, new Date(fromts).toISOString(), new Date(tots).toISOString()];
 
                 pool.query(query, params)
                     .then((result) => {
@@ -179,6 +206,7 @@ function QuestDB(_settings, _log, _currentStorage) {
             password: settings.daqstore.credentials?.password || 'quest',
             max: 10, // Pool with 10 connections
             idleTimeoutMillis: 30000, // 30s
+            types: queryTypes,
         };
     }
 
