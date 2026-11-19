@@ -61,11 +61,11 @@ describe('OPC UA write results', () => {
         delete require.cache[require.resolve('../../runtime/devices/opcua')];
     });
 
-    async function createDevice(connect = true, tags = null) {
+    async function createDevice(connect = true, tags = null, runtime = {}) {
         const device = driver.create({
             id: 'opcua-test', name: 'OPC UA test', property: { address: 'opc.tcp://test:4840' },
             tags: tags || { tag1: { name: 'Tag 1', type: 'Double', address: 'ns=1;s=ReadOnlyValue' } }
-        }, logger, new EventEmitter(), null, {});
+        }, logger, new EventEmitter(), null, runtime);
         if (connect) {
             await device.connect();
         }
@@ -194,6 +194,18 @@ describe('OPC UA write results', () => {
                 assert.equal(await device.setValue('tag1', '1'), false);
                 sinon.assert.notCalled(session.write);
             }
+        });
+
+        it('refuses the write when the write scale script fails', async () => {
+            const runtime = {
+                logger: { error: sandbox.spy() },
+                scriptsMgr: { runScript: sandbox.stub().rejects(new Error('boom')) }
+            };
+            const device = await createDevice(true, { tag1: { name: 'Tag 1', address: 'ns=1;s=Value', type: 'Int32', scaleWriteFunction: 'script1' } }, runtime);
+            session.write.resetHistory();
+            assert.equal(await device.setValue('tag1', '61.85'), false);
+            sinon.assert.notCalled(session.write);
+            sinon.assert.calledOnce(runtime.logger.error);
         });
 
         it('refuses the write when scaling divides by zero', async () => {

@@ -43,7 +43,7 @@ describe('ADS write scaling', function () {
         delete require.cache[require.resolve('../../runtime/devices/adsclient')];
     });
 
-    async function written(tag, value) {
+    async function write(tag, value, runtime = {}) {
         const driver = require('../../runtime/devices/adsclient');
         const client = driver.create({
             id: 'ads-device-1',
@@ -51,10 +51,14 @@ describe('ADS write scaling', function () {
             enabled: true,
             property: { address: '192.168.0.1:851' },
             tags: { tag1: Object.assign({ id: 'tag1', name: 'Tag 1', address: 'MAIN.value' }, tag) }
-        }, { info() { }, warn() { }, error() { } }, new EventEmitter(), null, {});
+        }, { info() { }, warn() { }, error() { } }, new EventEmitter(), null, runtime);
         await client.connect();
         writes = [];
-        await client.setValue('tag1', value);
+        return client.setValue('tag1', value);
+    }
+
+    async function written(tag, value, runtime) {
+        assert.strictEqual(await write(tag, value, runtime), true);
         assert.strictEqual(writes.length, 1);
         assert.strictEqual(writes[0].address, 'MAIN.value');
         return writes[0].value;
@@ -79,6 +83,41 @@ describe('ADS write scaling', function () {
         assert.strictEqual(await written({ type: 'boolean' }, 'true'), 1);
         assert.strictEqual(await written({ type: 'boolean' }, 'false'), 0);
         assert.strictEqual(await written({ type: 'boolean' }, '1'), 1);
+        assert.strictEqual(await written({ type: 'boolean' }, '0'), 0);
+    });
+
+    it('converts non-string boolean values', async function () {
+        assert.strictEqual(await written({ type: 'boolean' }, true), 1);
+        assert.strictEqual(await written({ type: 'boolean' }, false), 0);
+        assert.strictEqual(await written({ type: 'boolean' }, 1), 1);
+        assert.strictEqual(await written({ type: 'boolean' }, 0), 0);
+    });
+
+    it('runs the write scale script', async function () {
+        const runtime = {
+            logger: { error() { } },
+            scriptsMgr: { runScript: async (script) => script.parameters[0].value * 2 }
+        };
+        assert.strictEqual(await written({ type: 'number', scaleWriteFunction: 'script1' }, '21', runtime), 42);
+    });
+
+    it('refuses the write when the write scale script fails', async function () {
+        const runtime = {
+            logger: { error() { } },
+            scriptsMgr: { runScript: async () => { throw new Error('boom'); } }
+        };
+        assert.strictEqual(await write({ type: 'number', scaleWriteFunction: 'script1' }, '21', runtime), false);
+        assert.strictEqual(writes.length, 0);
+    });
+
+    it('returns false when the write fails', async function () {
+        const original = FakeAdsClient.prototype.writeValue;
+        FakeAdsClient.prototype.writeValue = async function () { throw new Error('write error'); };
+        try {
+            assert.strictEqual(await write({ type: 'number' }, '1'), false);
+        } finally {
+            FakeAdsClient.prototype.writeValue = original;
+        }
     });
 
     it('writes string tags unchanged', async function () {

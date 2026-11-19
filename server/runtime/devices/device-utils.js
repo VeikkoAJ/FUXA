@@ -173,6 +173,9 @@ const callScaleScript = async (scriptId, params, runtime, isRead, value) => {
             value = await runtime.scriptsMgr.runScript(script, false);
         } catch (error) {
             runtime.logger.error(`'${params}' ${isRead ? 'read' : 'write'} script error! ${error.toString()}`);
+            if (!isRead) {
+                return null; // like a failed write expression: no value, so the unscaled input is not written
+            }
         }
         return value;
     }
