@@ -742,15 +742,19 @@ function OpcUAclient(_data, _logger, _events, _runtime) {
     }
 
     /**
-     * Convert value from string depending of type
+     * Return true if the OPC UA data type is an integer type
      * @param {*} type
-     * @param {*} value
      */
     var _isIntegerType = function (type) {
         return [opcua.DataType.SByte, opcua.DataType.Byte, opcua.DataType.Int16, opcua.DataType.UInt16,
             opcua.DataType.Int32, opcua.DataType.UInt32, opcua.DataType.Int64, opcua.DataType.UInt64].includes(type);
     }
 
+    /**
+     * Convert value from string depending of type
+     * @param {*} type
+     * @param {*} value
+     */
     var _toValue = function (type, value) {
         switch (type) {
             case opcua.DataType.Boolean:
