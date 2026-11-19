@@ -773,7 +773,8 @@ function OpcUAclient(_data, _logger, _events, _runtime) {
             case opcua.DataType.UInt32:
             case opcua.DataType.Int64:
             case opcua.DataType.UInt64:
-                return parseInt(value);
+                // parseInt(1e21) and parseInt(1e-7) read the exponent string and give 1
+                return typeof value === 'number' ? Math.trunc(value) : parseInt(value);
             case opcua.DataType.Float:
             case opcua.DataType.Double:
                 return parseFloat(value);
