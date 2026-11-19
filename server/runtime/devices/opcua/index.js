@@ -373,7 +373,9 @@ function OpcUAclient(_data, _logger, _events, _runtime) {
             if (data.tags[tagId].dataType) {
                 opcType = data.tags[tagId].dataType; // use the actual dataType from read
             }
-            let valueToSend = await deviceUtils.tagRawCalculator(value, data.tags[tagId], runtime);
+            // Boolean values are converted before scaling so write scripts receive true/false
+            let valueToSend = opcType === opcua.DataType.Boolean ? _toValue(opcType, value) : value;
+            valueToSend = await deviceUtils.tagRawCalculator(valueToSend, data.tags[tagId], runtime);
             valueToSend = _toValue(opcType, valueToSend);
             if (opcType === opcua.DataType.String || opcType === opcua.DataType.ByteString) {
                 valueToSend = valueToSend?.toString();

@@ -191,7 +191,8 @@ describe('OPC UA write results', () => {
         it('sends String and ByteString tags as strings', async () => {
             assert.equal(await written({ type: 'String' }, 'abc'), 'abc');
             assert.equal(await written({ type: 'String' }, 42), '42');
-            assert.equal(await written({ type: 'String', scale: expression('this * 2') }, '21'), '42');
+            assert.equal(await written({ type: 'String', scale: expression('this * 2') }, '21'), '21');
+            assert.equal(await written({ type: 'String' }, '007'), '007');
             assert.equal(await written({ type: 'ByteString' }, 'xyz'), 'xyz');
         });
 

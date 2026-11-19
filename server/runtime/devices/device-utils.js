@@ -64,7 +64,8 @@ module.exports = {
 
         if (tag) {
             try {
-                if (utils.isNumber(value, obj)) {
+                const type = tag?.type;
+                if (!(type === 'String' || type === 'ByteString' || type === 'string') && utils.isNumber(value, obj)) {
                     value = obj.value;
                     if (tag.scale && tag.scale.mode === 'linear') {
                         value = tag.scale.rawLow + ((tag.scale.rawHigh - tag.scale.rawLow) * (value - tag.scale.scaledLow)) / (tag.scale.scaledHigh - tag.scale.scaledLow);
