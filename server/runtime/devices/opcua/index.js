@@ -386,7 +386,7 @@ function OpcUAclient(_data, _logger, _events, _runtime) {
                 valueToSend = Math.round(valueToSend); // avoid floating-point error truncating scaled values
             }
             valueToSend = _toValue(opcType, valueToSend);
-            if (Number.isNaN(valueToSend)) {
+            if (typeof valueToSend === 'number' && !Number.isFinite(valueToSend)) {
                 logger.error(`'${data.name}' setValue(${tagId}, ${value}) failed: invalid value for data type`);
                 return false;
             }

@@ -196,6 +196,16 @@ describe('OPC UA write results', () => {
             }
         });
 
+        it('refuses the write when scaling divides by zero', async () => {
+            const linear = { mode: 'linear', rawLow: 0, rawHigh: 100, scaledLow: 10, scaledHigh: 10 };
+            for (const tag of [{ type: 'Int32', scale: linear }, { type: 'Double', scale: expression('this / 0') }]) {
+                const device = await createDevice(true, { tag1: Object.assign({ name: 'Tag 1', address: 'ns=1;s=Value' }, tag) });
+                session.write.resetHistory();
+                assert.equal(await device.setValue('tag1', '5'), false);
+                sinon.assert.notCalled(session.write);
+            }
+        });
+
         it('still truncates unscaled integer writes', async () => {
             assert.equal(await written({ type: 'Int32' }, '61.7'), 61);
         });
