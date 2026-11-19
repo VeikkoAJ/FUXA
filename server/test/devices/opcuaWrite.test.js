@@ -179,6 +179,22 @@ describe('OPC UA write results', () => {
             assert.equal(await written(tag, '2.5'), 2500);
         });
 
+        it('rounds scaled integer writes instead of truncating floating-point error', async () => {
+            assert.equal(await written({ type: 'Int16', scale: expression('this * 100') }, '0.29'), 29);
+            assert.equal(await written({ type: 'Int16', scale: expression('this * 100') }, '4.35'), 435);
+            const linear = { type: 'Int32', scale: { mode: 'linear', rawLow: 0, rawHigh: 10000, scaledLow: 0, scaledHigh: 10 } };
+            assert.equal(await written(linear, '0.57'), 570);
+        });
+
+        it('refuses the write when the write expression fails', async () => {
+            for (const type of ['Int32', 'Double']) {
+                const device = await createDevice(true, { tag1: { name: 'Tag 1', address: 'ns=1;s=Value', type, scale: expression('this *') } });
+                session.write.resetHistory();
+                assert.equal(await device.setValue('tag1', '1'), false);
+                sinon.assert.notCalled(session.write);
+            }
+        });
+
         it('still truncates unscaled integer writes', async () => {
             assert.equal(await written({ type: 'Int32' }, '61.7'), 61);
         });

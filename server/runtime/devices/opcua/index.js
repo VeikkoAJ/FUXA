@@ -376,7 +376,20 @@ function OpcUAclient(_data, _logger, _events, _runtime) {
             // Boolean values are converted before scaling so write scripts receive true/false
             let valueToSend = opcType === opcua.DataType.Boolean ? _toValue(opcType, value) : value;
             valueToSend = await deviceUtils.tagRawCalculator(valueToSend, data.tags[tagId], runtime);
+            if (valueToSend === null || valueToSend === undefined) {
+                logger.error(`'${data.name}' setValue(${tagId}, ${value}) failed: scaling returned no value`);
+                return false;
+            }
+            const scale = data.tags[tagId].scale;
+            const scaled = scale?.mode === 'linear' || (scale?.mode === 'expression' && scale.writeExpression) || data.tags[tagId].scaleWriteFunction;
+            if (scaled && typeof valueToSend === 'number' && _isIntegerType(opcType)) {
+                valueToSend = Math.round(valueToSend); // avoid floating-point error truncating scaled values
+            }
             valueToSend = _toValue(opcType, valueToSend);
+            if (Number.isNaN(valueToSend)) {
+                logger.error(`'${data.name}' setValue(${tagId}, ${value}) failed: invalid value for data type`);
+                return false;
+            }
             if (opcType === opcua.DataType.String || opcType === opcua.DataType.ByteString) {
                 valueToSend = valueToSend?.toString();
             }
@@ -733,6 +746,11 @@ function OpcUAclient(_data, _logger, _events, _runtime) {
      * @param {*} type
      * @param {*} value
      */
+    var _isIntegerType = function (type) {
+        return [opcua.DataType.SByte, opcua.DataType.Byte, opcua.DataType.Int16, opcua.DataType.UInt16,
+            opcua.DataType.Int32, opcua.DataType.UInt32, opcua.DataType.Int64, opcua.DataType.UInt64].includes(type);
+    }
+
     var _toValue = function (type, value) {
         switch (type) {
             case opcua.DataType.Boolean:
